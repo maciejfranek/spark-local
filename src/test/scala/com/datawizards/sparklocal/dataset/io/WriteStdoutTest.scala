@@ -5,6 +5,7 @@ import com.datawizards.sparklocal.TestModel.LargeClass
 import com.datawizards.sparklocal.dataset.DataSetAPI
 import com.datawizards.sparklocal.datastore.Stdout
 import com.datawizards.sparklocal.implicits._
+import com.datawizards.class2csv._
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 
@@ -42,9 +43,9 @@ class WriteStdoutTest extends SparkLocalBaseTest {
     assertDatasetOperationReturnsSameResult(data) {
       ds => ds.write(Stdout())
     }
-    assertDatasetOperationReturnsSameResult(Seq(1,2,3)) {
-      ds => ds.show()
-    }
+//    assertDatasetOperationReturnsSameResult(Seq(1,2,3)) {
+//      ds => ds.show()
+//    }
     assertDatasetOperationReturnsSameResult(Seq((1,"a"),(2,"b"))) {
       ds => ds.show()
     }

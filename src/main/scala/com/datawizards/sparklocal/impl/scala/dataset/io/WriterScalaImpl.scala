@@ -9,7 +9,7 @@ import com.datawizards.sparklocal.dataset.DataSetAPI
 import com.datawizards.sparklocal.dataset.io._
 import com.datawizards.sparklocal.datastore._
 import com.datawizards.class2jdbc._
-import com.datawizards.dmg.dialects.{Dialect, HiveDialect}
+import com.datawizards.dmg.dialects.{Dialect, HiveDialect, MetaDataWithDialectExtractor}
 import com.datawizards.dmg.metadata.MetaDataExtractor
 import com.datawizards.esclient.repository.ElasticsearchRepositoryImpl
 import com.sksamuel.avro4s._
@@ -37,7 +37,7 @@ class WriterScalaImpl[T] extends Writer[T] {
           path = file.getPath,
           delimiter = dataStore.delimiter,
           header = dataStore.header,
-          columns = if(dataStore.columns.nonEmpty) dataStore.columns else extractTargetColumns(ModelDialects.CSV),
+          columns = if(dataStore.columns.nonEmpty) dataStore.columns else extractTargetColumns(ModelDialects._CSVDialect),
           escape = dataStore.escape,
           quote = dataStore.quote
         )
@@ -92,7 +92,7 @@ class WriterScalaImpl[T] extends Writer[T] {
                       (implicit ct: ClassTag[T], tt: TypeTag[T], jdbcEncoder: com.datawizards.class2jdbc.JdbcEncoder[T], encoder: Encoder[T]): Unit = {
       Class.forName(dataStore.driverClassName)
       val connection = DriverManager.getConnection(dataStore.url, dataStore.connectionProperties)
-      val classTypeMetaData = MetaDataExtractor.extractClassMetaDataForDialect[T](dataStore.dialect)
+      val classTypeMetaData = MetaDataWithDialectExtractor.extractClassMetaDataForDialect[T](Some(dataStore.dialect))
       val inserts = generateInserts(ds.collect(), dataStore.fullTableName, classTypeMetaData.fields.map(f => f.fieldName).toSeq)
       connection.createStatement().execute(inserts.mkString(";"))
       connection.close()

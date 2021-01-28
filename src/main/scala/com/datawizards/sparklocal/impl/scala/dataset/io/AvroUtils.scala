@@ -3,7 +3,8 @@ package com.datawizards.sparklocal.impl.scala.dataset.io
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.{Schema, SchemaBuilder}
 
-import scala.collection.JavaConversions._
+//import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 object AvroUtils {
 
@@ -13,7 +14,7 @@ object AvroUtils {
       .record(originalSchema.getName)
       .fields()
 
-    originalSchema.getFields.toList.foreach { f =>
+    originalSchema.getFields.asScala.foreach { f =>
       customSchemaBuilder = customSchemaBuilder
         .name(fieldNameMapping(f.name()))
         .`type`(f.schema())
@@ -25,7 +26,7 @@ object AvroUtils {
 
   def mapGenericRecordFromOriginalToTarget(record: GenericRecord, mappedSchema: Schema, fieldNameMapping: Map[String, String]): GenericRecord = {
     val customRecord = new org.apache.avro.generic.GenericData.Record(mappedSchema)
-    record.getSchema.getFields.foreach{ f =>
+    record.getSchema.getFields.asScala.foreach{ f =>
       customRecord.put(fieldNameMapping(f.name()), record.get(f.name()))
     }
     customRecord
@@ -33,7 +34,7 @@ object AvroUtils {
 
   def mapGenericRecordFromTargetToOriginal(record: GenericRecord, schema: Schema, fieldNameMapping: Map[String, String]): GenericRecord = {
     val customRecord = new org.apache.avro.generic.GenericData.Record(schema)
-    customRecord.getSchema.getFields.foreach{ f =>
+    customRecord.getSchema.getFields.asScala.foreach{ f =>
       customRecord.put(f.name(), record.get(fieldNameMapping(f.name())))
     }
     customRecord

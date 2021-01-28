@@ -1,6 +1,8 @@
 package com.datawizards.sparklocal.impl.spark.dataset.io
 
-import com.databricks.spark.avro._
+import com.datawizards.dmg.dialects.MetaDataWithDialectExtractor
+import org.apache.spark.sql.avro._
+//import com.databricks.spark.avro._
 import com.datawizards.csv2class
 import com.datawizards.dmg.dialects
 import com.datawizards.dmg.dialects.Dialect
@@ -27,7 +29,7 @@ object ReaderSparkImpl extends Reader {
     override def apply[L <: HList](dataStore: datastore.CSVDataStore)
                                   (implicit ct: ClassTag[T], tt: TypeTag[T], gen: Aux[T, L], fromRow: csv2class.FromRow[L], enc: Encoder[T]): DataSetAPI[T] = {
 
-      val classTypeMetaData = extractClassMetaData(ModelDialects.CSV)
+      val classTypeMetaData = extractClassMetaData(ModelDialects._CSVDialect)
       var df = spark
         .read
         .option("header", dataStore.header.toString)
@@ -46,7 +48,7 @@ object ReaderSparkImpl extends Reader {
     }
 
     override def apply(dataStore: datastore.JsonDataStore)(implicit ct: ClassTag[T], tt: TypeTag[T]): DataSetAPI[T] = {
-      val classTypeMetaData = extractClassMetaData(ModelDialects.JSON)
+      val classTypeMetaData = extractClassMetaData(ModelDialects._JSONDialect)
       implicit val enc = ExpressionEncoder[T]()
       mapInputDataFrameToDataset(
         spark
@@ -59,7 +61,7 @@ object ReaderSparkImpl extends Reader {
 
     override def apply(dataStore: datastore.ParquetDataStore)
                       (implicit ct: ClassTag[T], tt: TypeTag[T], s: SchemaFor[T], fromR: FromRecord[T], toR: ToRecord[T], enc: Encoder[T]): DataSetAPI[T] = {
-      val classTypeMetaData = extractClassMetaData(ModelDialects.Parquet)
+      val classTypeMetaData = extractClassMetaData(ModelDialects._ParquetDialect)
       mapInputDataFrameToDataset(
         spark
           .read
@@ -71,23 +73,24 @@ object ReaderSparkImpl extends Reader {
 
     override def apply(dataStore: datastore.AvroDataStore)
                       (implicit ct: ClassTag[T], tt: TypeTag[T], s: SchemaFor[T], r: FromRecord[T], enc: Encoder[T]): DataSetAPI[T] = {
-      val classTypeMetaData = extractClassMetaData(ModelDialects.Avro)
+      val classTypeMetaData = extractClassMetaData(ModelDialects._AvroDialect)
       mapInputDataFrameToDataset(
         spark
           .read
           .schema(buildSchema(classTypeMetaData))
-          .avro(dataStore.path),
+          //          .avro(dataStore.path),
+          .format("avro").load(dataStore.path),
         classTypeMetaData
       )
     }
 
     override def apply(dataStore: datastore.HiveDataStore)
                       (implicit ct: ClassTag[T], tt: TypeTag[T], s: SchemaFor[T], r: FromRecord[T], enc: Encoder[T]): DataSetAPI[T] = {
-      val classTypeMetaData = extractClassMetaData(dialects.Hive)
+      val classTypeMetaData = extractClassMetaData(dialects.HiveDialect)
       mapInputDataFrameToDataset(
         spark
           .read
-          .schema(buildSchema(classTypeMetaData))
+//          .schema(buildSchema(classTypeMetaData))
           .table(dataStore.fullTableName),
         classTypeMetaData
       )
@@ -127,7 +130,7 @@ object ReaderSparkImpl extends Reader {
 
     private def extractClassMetaData(dialect: Dialect)
                                     (implicit tt: TypeTag[T]) =
-      MetaDataExtractor.extractClassMetaDataForDialect[T](dialect)
+      MetaDataWithDialectExtractor.extractClassMetaDataForDialect[T](Option(dialect))
 
     private def projectTargetColumns(df: DataFrame, classTypeMetaData: ClassTypeMetaData): DataFrame =
       projectSelectedColumns(df, classTypeMetaData.fields.map(_.fieldName).toSeq)

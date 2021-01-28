@@ -3,10 +3,10 @@ package com.datawizards.sparklocal.dataset.io
 import com.datawizards.dmg.dialects.{DecoratorDialect, Dialect}
 
 object ModelDialects {
-  val CSV: Dialect = CSVDialect
-  val Parquet: Dialect = ParquetDialect
-  val Avro: Dialect = AvroDialect
-  val JSON: Dialect = JSONDialect
+  val _CSVDialect: Dialect = CSVDialect
+  val _ParquetDialect: Dialect = ParquetDialect
+  val _AvroDialect: Dialect = AvroDialect
+  val _JSONDialect: Dialect = JSONDialect
 }
 
 class DummyDialect extends DecoratorDialect(null) {

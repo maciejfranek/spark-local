@@ -21,5 +21,8 @@ project/plugins/project/
 
 checkpoints/
 spark-warehouse/
+build/
+.gradle/
+out/
 
 metastore_db/

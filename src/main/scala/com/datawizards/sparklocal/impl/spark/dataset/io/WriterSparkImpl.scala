@@ -1,6 +1,6 @@
 package com.datawizards.sparklocal.impl.spark.dataset.io
 
-import com.databricks.spark.avro._
+//import com.databricks.spark.avro._
 import com.datawizards.class2csv
 import com.datawizards.dmg.dialects
 import com.datawizards.dmg.dialects.Dialect
@@ -21,7 +21,7 @@ class WriterSparkImpl[T] extends Writer[T] {
     override def apply(dataStore: CSVDataStore, saveMode: SaveMode)
                       (implicit ct: ClassTag[T], tt: TypeTag[T], csvEncoder: class2csv.CsvEncoder[T], encoder: Encoder[T]): Unit = {
 
-      var df = mapDataFrameColumns(ds.toDataset.toDF, ModelDialects.CSV)
+      var df = mapDataFrameColumns(ds.toDataset.toDF, ModelDialects._CSVDialect)
       if(dataStore.columns.nonEmpty) {
         df = df.toDF(dataStore.columns: _*)
       }
@@ -43,7 +43,7 @@ class WriterSparkImpl[T] extends Writer[T] {
     override def apply(dataStore: JsonDataStore, saveMode: SaveMode)
                       (implicit encoder: Encoder[T], tt: TypeTag[T]): Unit =
         addPartitioning(
-          mapDataSetToDataFrameWithTargetColumns(ds, ModelDialects.JSON)
+          mapDataSetToDataFrameWithTargetColumns(ds, ModelDialects._JSONDialect)
             .write
             .mode(saveMode)
         )
@@ -52,7 +52,7 @@ class WriterSparkImpl[T] extends Writer[T] {
     override def apply(dataStore: ParquetDataStore, saveMode: SaveMode)
                       (implicit tt: TypeTag[T], s: SchemaFor[T], fromR: FromRecord[T], toR: ToRecord[T], encoder: Encoder[T]): Unit =
         addPartitioning(
-          mapDataSetToDataFrameWithTargetColumns(ds, ModelDialects.Parquet)
+          mapDataSetToDataFrameWithTargetColumns(ds, ModelDialects._ParquetDialect)
             .write
             .mode(saveMode)
         )
@@ -61,16 +61,20 @@ class WriterSparkImpl[T] extends Writer[T] {
     override def apply(dataStore: AvroDataStore, saveMode: SaveMode)
                       (implicit tt: TypeTag[T], s: SchemaFor[T], r: ToRecord[T], encoder: Encoder[T]): Unit =
         addPartitioning(
-          mapDataSetToDataFrameWithTargetColumns(ds, ModelDialects.Avro)
+          mapDataSetToDataFrameWithTargetColumns(ds, ModelDialects._AvroDialect)
             .write
             .mode(saveMode)
         )
-        .avro(dataStore.path)
+          .format("avro")
+          .save(dataStore.path)
+//        .avro(dataStore.path)
 
     override def apply(dataStore: HiveDataStore, saveMode: SaveMode)
                       (implicit tt: TypeTag[T], s: SchemaFor[T], r: ToRecord[T], encoder: Encoder[T]): Unit =
+//      if (spark.catalog.tableExists(table))
+
         addPartitioning(
-          mapDataSetToDataFrameWithTargetColumns(ds, dialects.Hive)
+          mapDataSetToDataFrameWithTargetColumns(ds, dialects.HiveDialect)
             .write
             .mode(saveMode)
         )
@@ -87,7 +91,7 @@ class WriterSparkImpl[T] extends Writer[T] {
 
     override protected def writeToElasticsearch(dataStore: ElasticsearchDataStore)
                                                (implicit ct: ClassTag[T], tt: TypeTag[T], encoder: Encoder[T]): Unit =
-      mapDataSetToDataFrameWithTargetColumns(ds, dialects.Elasticsearch)
+      mapDataSetToDataFrameWithTargetColumns(ds, dialects.ElasticsearchDialect)
         .saveToEs(dataStore.elasticsearchResourceName, dataStore.getConfigForSparkWriter)
 
     private def mapDataSetToDataFrameWithTargetColumns(ds: DataSetAPI[T], dialect: Dialect)

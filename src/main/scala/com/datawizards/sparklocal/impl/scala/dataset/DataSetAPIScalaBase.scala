@@ -13,7 +13,8 @@ import org.apache.spark.storage.StorageLevel
 import org.apache.spark.util.random.{BernoulliCellSampler, BernoulliSampler, PoissonSampler}
 
 import scala.collection.GenIterable
-import scala.collection.JavaConversions._
+//import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 
@@ -34,7 +35,8 @@ abstract class DataSetAPIScalaBase[T: ClassTag] extends DataSetAPI[T] {
     data.toArray
 
   override def collectAsList(): java.util.List[T] =
-    data.toList
+    data.toList.asJava
+
 
   override def filter(p: T => Boolean): DataSetAPI[T] =
     create(data.filter(p))
@@ -91,7 +93,7 @@ abstract class DataSetAPIScalaBase[T: ClassTag] extends DataSetAPI[T] {
   }
 
   override def takeAsList(n: Int): util.List[T] =
-    data.take(n).toList
+    data.take(n).toList.asJava
 
   override def limit(n: Int): DataSetAPI[T] =
     create(data.take(n))
@@ -131,13 +133,28 @@ abstract class DataSetAPIScalaBase[T: ClassTag] extends DataSetAPI[T] {
 
   override def join[U: ClassTag](other: DataSetAPI[U], condition: Expressions.BooleanExpression)
                                 (implicit encT: Encoder[T], encU: Encoder[U], encTU: Encoder[(T,U)]): DataSetAPI[(T, U)] = other match {
-    case dsScala:DataSetAPIScalaBase[U] => create(
-      for {
-        left <- data
-        right <- dsScala.data
-        if condition.eval(left, right)
-      } yield (left, right)
-    )
+    case dsScala:DataSetAPIScalaBase[U] =>
+      val b = new ListBuffer[(T,U)]
+
+      val empty: U = null.asInstanceOf[U]
+
+      for (left <- data) {
+        for (right <- dsScala.data) {
+          if (condition.eval(left, right)) {
+            b += ((left, right))
+          }
+        }
+      }
+      create(b)
+// ORIGINAL VERSION
+//      create(
+//      for {
+//        left <- data
+//        right <- dsScala.data
+//        if condition.eval(left, right)
+//      } yield (left, right)
+//    )
+// END OF ORIGINAL VERSION
     case dsSpark:DataSetAPISparkImpl[U] => DataSetAPI(this.toDataset.joinWith(dsSpark.data, condition.toSparkColumn, "inner"))
   }
 

@@ -6,7 +6,7 @@ import com.datawizards.class2csv._
 import com.datawizards.sparklocal.dataset.DataSetAPI
 import com.datawizards.class2jdbc._
 import com.datawizards.dmg.DataModelGenerator
-import com.datawizards.dmg.dialects.Dialect
+import com.datawizards.dmg.dialects.{Dialect, MetaDataWithDialectExtractor}
 import com.datawizards.dmg.metadata.MetaDataExtractor
 import com.datawizards.esclient.repository.ElasticsearchRepositoryImpl
 import com.datawizards.sparklocal.datastore._
@@ -43,8 +43,8 @@ abstract class WriterExecutor[T](ds: DataSetAPI[T]) {
     }
 
     def createTable(): Unit = {
-      val classTypeMetaData = MetaDataExtractor
-        .extractClassMetaDataForDialect[T](dataStore.dialect)
+      val classTypeMetaData = MetaDataWithDialectExtractor
+        .extractClassMetaDataForDialect[T](Some(dataStore.dialect))
         .copy(typeName = tableName)
       val sql = DataModelGenerator.generate(dataStore.dialect, classTypeMetaData)
       connection.createStatement().execute(sql)
@@ -231,7 +231,7 @@ abstract class WriterExecutor[T](ds: DataSetAPI[T]) {
 
   protected def extractTargetColumns(dialect: Dialect)
                                   (implicit tt: TypeTag[T]): Seq[String] = {
-    val classTypeMetaData = MetaDataExtractor.extractClassMetaDataForDialect[T](dialect)
+    val classTypeMetaData = MetaDataWithDialectExtractor.extractClassMetaDataForDialect[T](Option(dialect))
     classTypeMetaData.fields.map(_.fieldName).toSeq
   }
 }

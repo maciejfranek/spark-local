@@ -5,7 +5,7 @@ import java.sql.DriverManager
 
 import com.datawizards.csv2class
 import com.datawizards.csv2class._
-import com.datawizards.dmg.dialects.{Dialect, HiveDialect}
+import com.datawizards.dmg.dialects.{Dialect, HiveDialect, MetaDataWithDialectExtractor}
 import com.datawizards.dmg.metadata.MetaDataExtractor
 import com.datawizards.sparklocal.dataset.DataSetAPI
 import com.datawizards.sparklocal.dataset.io._
@@ -38,7 +38,7 @@ trait ReaderScalaBase extends Reader {
           quote = dataStore.quote,
           escape = dataStore.escape,
           header = dataStore.header,
-          customColumns = if(dataStore.columns.nonEmpty) dataStore.columns else extractTargetColumns(ModelDialects.CSV)
+          customColumns = if(dataStore.columns.nonEmpty) dataStore.columns else extractTargetColumns(ModelDialects._CSVDialect)
         )._1
       }
     }
@@ -86,7 +86,7 @@ trait ReaderScalaBase extends Reader {
                                   (implicit ct: ClassTag[T], tt: TypeTag[T], gen: Aux[T, L], fromRow: csv2class.FromRow[L], enc: Encoder[T]): DataSetAPI[T] = {
       Class.forName(dataStore.driverClassName)
       val connection = DriverManager.getConnection(dataStore.url, dataStore.connectionProperties)
-      val classTypeMetaData = MetaDataExtractor.extractClassMetaDataForDialect[T](dataStore.dialect)
+      val classTypeMetaData = MetaDataWithDialectExtractor.extractClassMetaDataForDialect[T](Some(dataStore.dialect))
       val result = selectTable[T](connection, dataStore.fullTableName, classTypeMetaData.fields.map(f => f.fieldName))
       connection.close()
       createDataSet(result._1)
@@ -125,7 +125,7 @@ trait ReaderScalaBase extends Reader {
 
     protected def extractTargetColumns(dialect: Dialect)
                                       (implicit tt: TypeTag[T]): Seq[String] = {
-      val classTypeMetaData = MetaDataExtractor.extractClassMetaDataForDialect[T](dialect)
+      val classTypeMetaData = MetaDataWithDialectExtractor.extractClassMetaDataForDialect[T](Option(dialect))
       classTypeMetaData.fields.map(_.fieldName).toSeq
     }
   }

@@ -1,0 +1,138 @@
+buildscript {
+    repositories {
+        jcenter()
+        mavenCentral()
+        mavenLocal()
+    }
+    dependencies {
+        classpath "org.ajoberstar:grgit:1.7.2"
+    }
+}
+
+plugins {
+    id 'scala'
+    id 'maven-publish'
+    id 'java'
+    id 'groovy'
+    id 'io.freefair.lombok' version '5.1.0'
+    id 'maven'
+}
+
+// consider java 11
+sourceCompatibility = JavaVersion.VERSION_11
+targetCompatibility = JavaVersion.VERSION_1_8
+
+group 'com.github.piotr-kalanski'
+// Please set the trfBeReportingMigrationsVersion variable in project.ext
+version = '0.7.8-SNAPSHOT'
+
+project.ext {
+
+    demicaArtifactoryUrl = 'http://artifactory.gce.demica.com/artifactory'
+    dockerRegistryUrl = System.getenv('DOCKER_CONTAINER_REGISTRY')
+
+    if (!project.hasProperty("branchName")) {
+        branchName = "local-development-" + project.version
+    }
+
+    isReleaseVersion = project.version.toString().matches("\\d+\\.\\d+\\.\\d+")
+    isReleaseBranch = project.hasProperty("isReleaseBranch") ? Boolean.parseBoolean(isReleaseBranch) : false
+}
+
+repositories {
+    mavenCentral()
+
+    maven {
+        name "DemicaExternalRelesasesArtifactory"
+        url "${demicaArtifactoryUrl}/ext-release-local"
+    }
+    maven {
+        name "DemicaExternalSnapshotArtifactory"
+        url "${demicaArtifactoryUrl}/ext-snapshot-local"
+    }
+    maven {
+        name "DemicaReleaseArtifactory"
+        url "${demicaArtifactoryUrl}/libs-release-local"
+    }
+    maven {
+        name "DemicaSnapshotArtifactory"
+        url "${demicaArtifactoryUrl}/libs-snapshot-local"
+    }
+
+    mavenLocal()
+}
+
+configurations.all {
+    resolutionStrategy {
+        force "com.fasterxml.jackson.core:jackson-databind:2.6.7.1"
+        force "org.apache.hadoop:hadoop-client:${hadoopVersion}"
+        cacheChangingModulesFor 0, 'seconds'
+        cacheDynamicVersionsFor 0, 'seconds'
+    }
+
+    //this exclusion is because Spark has its own dependencies to log4j.
+    exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    exclude group: 'org.apache.logging.log4j', module: 'log4j-slf4j-impl'
+}
+
+dependencies {
+    implementation "org.scala-lang:scala-library:${scalaVersion}"
+
+    implementation "org.apache.spark:spark-sql_${scalaShortVersion}:${sparkVersion}"
+    implementation "org.apache.spark:spark-hive_${scalaShortVersion}:${sparkVersion}"
+
+    // https://mvnrepository.com/artifact/org.apache.spark/spark-avro
+    implementation "org.apache.spark:spark-avro_${scalaShortVersion}:${sparkVersion}"
+//    implementation "com.databricks:spark-avro:3.2.0"
+
+    implementation "org.json4s:json4s-native_${scalaShortVersion}:3.5.3"
+//    implementation "org.json4s:json4s-jackson_${scalaShortVersion}:3.2.11"
+
+    implementation "org.apache.parquet:parquet-avro:1.9.0"
+    implementation "com.sksamuel.avro4s:avro4s-core_${scalaShortVersion}:1.6.4"
+
+//    implementation "org.elasticsearch:elasticsearch-spark-20:5.4.1"
+    implementation "org.elasticsearch:elasticsearch-spark:20_2.12-8.0.2-20200730.120944-1"
+
+    implementation "com.github.piotr-kalanski:csv2class:0.3.4-SNAPSHOT"
+    implementation "com.github.piotr-kalanski:class2sql:0.3.4-SNAPSHOT"
+    implementation "com.github.piotr-kalanski:es-client:0.3.4-SNAPSHOT"
+    implementation "com.github.piotr-kalanski:data-model-generator:0.7.8-SNAPSHOT"
+    testImplementation "com.github.piotr-kalanski:splot:0.3.4-SNAPSHOT"
+
+    testImplementation "org.scalatest:scalatest_${scalaShortVersion}:3.0.1"
+    testImplementation "junit:junit:4.10"
+    testImplementation "com.h2database:h2:1.4.195"
+    testImplementation "com.storm-enroute:scalameter-core_${scalaShortVersion}:0.8.2"
+    testImplementation "com.github.alexarchambault:scalacheck-shapeless_1.13_${scalaShortVersion}:1.1.5"
+}
+
+
+// Spark processing related tasks
+//apply from: 'spark.gradle'
+
+// Compilation definitions
+
+// IMPORTANT: By default `compileScala` depends on `compileJava`
+//            In this project we need exactly opposite situation, in order to achieve that
+//            we have to make sure that Scala will compile first, and this dependency reversion
+//            and source dirs reassignment is doing here!
+sourceSets {
+    main {
+        scala {
+            srcDirs = ['src/main/scala', 'src/main/java']
+        }
+        java {
+            srcDirs = []
+        }
+    }
+
+    test {
+        scala {
+            srcDirs = ['src/test/scala', 'src/test/java']
+        }
+        java {
+            srcDirs = ['src/test/java']
+        }
+    }
+}

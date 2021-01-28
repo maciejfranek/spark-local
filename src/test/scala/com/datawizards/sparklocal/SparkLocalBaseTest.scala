@@ -9,15 +9,16 @@ import com.datawizards.sparklocal.session.{ExecutionEngine, SparkSessionAPI}
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.{SQLContext, SparkSession}
-import org.scalatest.FunSuite
+import org.scalatest.{BeforeAndAfterEach, FunSuite}
 
 import scala.collection.GenIterable
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.TypeTag
 import scala.math.Ordering
 import scala.math.Ordering.Boolean
+import scala.reflect.io.Directory
 
-trait SparkLocalBaseTest extends FunSuite {
+trait SparkLocalBaseTest extends FunSuite with BeforeAndAfterEach {
   lazy val spark: SparkSession = {
     val r = SparkSession.builder().master("local").getOrCreate()
     r.sparkContext.setCheckpointDir("checkpoints/")
@@ -40,6 +41,12 @@ trait SparkLocalBaseTest extends FunSuite {
         Boolean.compare(xe.hasNext, ye.hasNext)
       }
     }
+
+  override def beforeEach() {
+    val directory = new Directory(new File("spark-warehouse"))
+    directory.deleteRecursively()
+  }
+
 
   /**
     * Verifies that Dataset has the same elements as expected result

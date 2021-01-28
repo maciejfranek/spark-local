@@ -1,6 +1,6 @@
 package com.datawizards.sparklocal.impl.scala.dataset.io
 
-import com.datawizards.dmg.dialects.Dialect
+import com.datawizards.dmg.dialects.{Dialect, MetaDataWithDialectExtractor}
 import com.datawizards.dmg.metadata.MetaDataExtractor
 import com.datawizards.sparklocal.dataset.io.JSONDialect
 import org.json4s.JValue
@@ -11,7 +11,7 @@ import scala.reflect.runtime.universe.TypeTag
 
 object FieldNamesMappingUtils {
   def constructFieldNameMapping[T: TypeTag](dialect: Dialect, fromOriginal: Boolean=true): Map[String, String] = {
-    val classTypeMetaData = MetaDataExtractor.extractClassMetaDataForDialect[T](dialect)
+    val classTypeMetaData = MetaDataWithDialectExtractor.extractClassMetaDataForDialect[T](Option(dialect))
     classTypeMetaData
       .fields
       .map{ f =>

@@ -8,9 +8,9 @@ import org.apache.spark.sql.SaveMode
 
 object ColumnMappingExample extends App {
   case class PersonWithMapping(
-                                @column("personName", dialect = ModelDialects.JSON)
+                                @column("personName", dialect = ModelDialects._JSONDialect)
                                 name: String,
-                                @column("personAge", dialect = ModelDialects.JSON)
+                                @column("personAge", dialect = ModelDialects._JSONDialect)
                                 age: Int
                               )
 
